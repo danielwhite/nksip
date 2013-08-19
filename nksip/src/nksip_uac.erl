@@ -55,6 +55,7 @@
 
 -export([options/3, options/2, register/3, invite/3, ack/2, reinvite/2, 
             bye/2, cancel/2, refresh/2, stun/3]).
+-export([subscribe/4]).
 -export([send_request/4, send_request/2]).
 
 
@@ -563,6 +564,31 @@ stun(AppId, UriSpec, _Opts) ->
                     end
             end
     end.
+
+
+%% @doc Sends a <i>SUBSCRIBE</i> request.
+%%
+-spec subscribe(nksip:sipapp_id(), nksip:user_uri(), nksip_lib:token() | string(), nksip_lib:proplist())
+               -> {ok, nksip:response_code()} | {reply, nksip:response()} |
+                  async | {error, nodialog_errors()}.
+
+subscribe(AppId, Uri, Package, Opts) when is_list(Package) ->
+    subscribe(AppId, Uri, {Package, []}, Opts);
+
+subscribe(AppId, Uri, Package, Opts) ->
+    Headers = nksip_headers:update(
+                nksip_lib:get_value(headers, Opts, nksip_headers:new([none])),
+                [
+                 {single, <<"Event">>, nksip_unparse:tokens([Package])},
+                 case nksip_lib:get_integer(expires, Opts) of
+                     Expires when Expires >= 0 ->
+                         {single, <<"Expires">>, Expires};
+                     _ ->
+                         none
+                 end
+                ]),
+    NewOpts = lists:keystore(headers, 1, Opts, {headers, Headers}),
+    send_request(AppId, 'SUBSCRIBE', Uri, NewOpts).
 
 
 %% ===================================================================
