@@ -124,6 +124,7 @@
 
 -export([init/1, get_user_pass/4, authorize/4, route/6, invite/4, reinvite/4, cancel/3, 
          ack/4, bye/4, options/3, register/3]).
+-export([notify/4]).
 -export([ping_update/3, register_update/3, dialog_update/3, session_update/3]).
 -export([handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 -include("nksip.hrl").
@@ -502,6 +503,12 @@ register(RequestId, _From, State) ->
             {internal_error, <<"Unknown Request">>}
     end,
     {reply, Reply, State}.
+
+
+%% @doc Called when a NOTIFY request related to a previous SUBSCRIBE
+%% is received.
+notify(_DialogId, _RequestId, _State, State) ->
+    {reply, {481, <<"Subscription does not exist">>}, State}.
 
 
 %% @doc Called when a dialog has changed its state.
