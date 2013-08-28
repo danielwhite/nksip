@@ -290,6 +290,8 @@ proc_response(Res, StateName, SD) ->
             {StateName, SD};
         Method=:='BYE', Code >= 200, Code < 300 ->
             {stop, SD};
+        Method =:= 'SUBSCRIBE', Code >= 200, Code < 300 ->
+            {confirmed, SD};
         true ->
             {StateName, SD}
     end.
