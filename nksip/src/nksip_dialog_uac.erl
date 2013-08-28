@@ -101,7 +101,9 @@ request(_) ->
 response(_Req, #sipmsg{cseq_method='CANCEL'}) ->
     ok;
 response(#sipmsg{ruri=RUri}=Req, 
-         #sipmsg{response=Code, cseq_method='INVITE', to=To, to_tag=ToTag}=Resp) ->
+         #sipmsg{response=Code, cseq_method=Method, to=To, to_tag=ToTag}=Resp)
+  when Method =:= 'INVITE';
+       Method =:= 'SUBSCRIBE' ->
     case nksip_dialog_fsm:call(Resp, {response, uac, Resp}) of
         ok ->
             ok;
