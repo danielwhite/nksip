@@ -207,6 +207,16 @@ proc_request(Req, From, StateName, SD) ->
         'INVITE' ->
             gen_fsm:reply(From, {error, invalid_dialog}),
             {StateName, SD1};
+        'SUBSCRIBE' when StateName =:= init; StateName =:= confirmed ->
+            gen_fsm:reply(From, ok),
+            {proceeding_uac, SD1#dlg_state{invite_request=Req}};
+        'SUBSCRIBE' when StateName =:= proceeding_uac,
+                         CSeq=:=InvReq#sipmsg.cseq ->
+            gen_fsm:reply(From, ok),
+            {proceeding_uac, SD1#dlg_state{invite_request=Req}};
+        'SUBSCRIBE' ->
+            gen_fsm:reply(From, {error, invalid_dialog}),
+            {StateName, SD1};
         'ACK' when StateName=:=accepted_uac, CSeq=:=InvReq#sipmsg.cseq ->
             gen_fsm:reply(From, ok),
             % Take the SDP from the ACK request if the INVITE didn't have it
@@ -291,7 +301,11 @@ proc_response(Res, StateName, SD) ->
         Method=:='BYE', Code >= 200, Code < 300 ->
             {stop, SD};
         Method =:= 'SUBSCRIBE', Code >= 200, Code < 300 ->
-            {confirmed, SD};
+            SD1 = SD#dlg_state{invite_response = Res},
+            nksip_dialog_lib:target_update(uac, confirmed, SD1);
+        Method =:= 'SUBSCRIBE' ->
+            Dialog1 = Dialog#dialog{stop_reason = nksip_dialog_lib:reason(Code)},
+            {stop, SD#dlg_state{dialog = Dialog1}};
         true ->
             {StateName, SD}
     end.
