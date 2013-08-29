@@ -580,10 +580,10 @@ subscribe(AppId, Uri, Package, Opts) ->
                 nksip_lib:get_value(headers, Opts, nksip_headers:new([none])),
                 [
                  {single, <<"Event">>, nksip_unparse:tokens([Package])},
-                 case nksip_lib:get_integer(expires, Opts) of
-                     Expires when Expires >= 0 ->
+                 case nksip_lib:get_value(expires, Opts) of
+                     Expires when is_integer(Expires) andalso Expires >= 0 ->
                          {single, <<"Expires">>, Expires};
-                     _ ->
+                     undefined ->
                          none
                  end
                 ]),
