@@ -241,6 +241,9 @@ proc_request(Req, From, StateName, SD) ->
             end,
             Dialog1 = Dialog#dialog{stop_reason=Reason},
             {bye, SD1#dlg_state{dialog=Dialog1}};
+        'SUBSCRIBE' ->
+            gen_fsm:reply(From, ok),
+            {proceeding_uac, SD#dlg_state{invite_request = Req}};
         _ ->
             gen_fsm:reply(From, ok),
             {StateName, SD1}    
