@@ -247,12 +247,11 @@ route({reply, Reply}, #state{req=Req}=SD) ->
     ?debug(AppId, CallId, "FSM UAS ~p route: ~p", [Method, Route]),
     case Route of
         {process, _} when Method=/='CANCEL', Method=/='ACK' ->
-            case nksip_parse:header_tokens(<<"Require">>, Req) of
-                [] -> 
+            case unsupported_extensions(SD) of
+                [] ->
                     route(Route, SD);
-                Requires -> 
-                    RequiresTxt = nksip_lib:bjoin([T || {T, _} <- Requires]),
-                    stop({bad_extension,  RequiresTxt}, SD)
+                Required ->
+                    stop({bad_extension,  nksip_lib:bjoin(Required)}, SD)
             end;
         _ ->
             route(Route, SD)
@@ -602,3 +601,7 @@ send_reply(Reply, #state{req=Req}=SD) ->
     send_reply(nksip_reply:reply(Req, Reply), SD).
 
 
+unsupported_extensions(#state{core_module = Module, core_pid = CorePid, req = Req}) ->
+    Required = [Option || {Option, _} <- nksip_parse:header_tokens(<<"Require">>, Req)],
+    Supported = nksip_sipapp_srv:sipapp_call_sync(CorePid, Module, supported, []),
+    Required -- Supported.
