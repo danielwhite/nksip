@@ -338,6 +338,9 @@ process(launch, #state{req=#sipmsg{method=Method, to_tag=ToTag}=Req}=SD)
                 'REGISTER' ->
                     corecall(register, [], SD),
                     start_timer(process, SD);
+                'NOTIFY' ->
+                    corecall(notify, [DialogId], SD),
+                    start_timer(process, SD);
                 _ ->
                     stop({method_not_allowed, nksip_sipapp_srv:allowed(AppId)}, SD)
             end;
@@ -388,6 +391,8 @@ process(launch, #state{req=Req}=SD) ->
         'REGISTER' ->
             corecall(register, [], SD),
             start_timer(process, SD);
+        'NOTIFY' ->
+            stop(no_transaction, SD);
         _ ->
             stop({method_not_allowed, nksip_sipapp_srv:allowed(AppId)}, SD)
     end;

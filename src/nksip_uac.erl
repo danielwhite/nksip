@@ -55,6 +55,7 @@
 
 -export([options/3, options/2, register/3, invite/3, ack/2, reinvite/2, 
             bye/2, cancel/2, refresh/2, stun/3]).
+-export([subscribe/3, resubscribe/2]).
 -export([send_request/4, send_request/2]).
 
 
@@ -563,6 +564,49 @@ stun(AppId, UriSpec, _Opts) ->
                     end
             end
     end.
+
+
+%% @doc Sends a <i>SUBSCRIBE</i> request.
+%%
+-spec subscribe(nksip:sipapp_id(), nksip:user_uri(), nksip_lib:proplist())
+               -> {ok, nksip:response_code()} | {reply, nksip:response()} |
+                  async | {error, nodialog_errors()}.
+
+subscribe(AppId, Uri, Opts) ->
+    NewOpts = lists:foldl(fun apply_subscribe_option/2, [], Opts),
+    send_request(AppId, 'SUBSCRIBE', Uri, NewOpts).
+
+
+%% @doc Refresh an existing subscription.
+resubscribe(DialogSpec, Opts) ->
+    NewOpts = lists:foldl(fun apply_subscribe_option/2, [], Opts),
+    send_dialog(DialogSpec, 'SUBSCRIBE', NewOpts).
+
+
+%% @doc Process an option for a SUBSCRIBE request.
+apply_subscribe_option({expires, Expires}, Options)
+  when is_integer(Expires) andalso Expires >= 0 ->
+    Headers = nksip_headers:update(
+                nksip_lib:get_value(headers, Options, nksip_headers:new([none])),
+                [{single, <<"Expires">>, Expires}]),
+    lists:keystore(headers, 1, Options, {headers, Headers});
+
+apply_subscribe_option({event, Package}, Options)
+  when is_list(Package) ->
+    apply_subscribe_option({event, {Package, []}}, Options);
+
+apply_subscribe_option({event, Package}, Options) ->
+    Headers = nksip_headers:update(
+                nksip_lib:get_value(headers, Options, nksip_headers:new([none])),
+                [{single, <<"Event">>, nksip_unparse:tokens([Package])}]),
+    lists:keystore(headers, 1, Options, {headers, Headers});
+
+apply_subscribe_option({headers, Headers}, Options) ->
+    ExistingHeaders = nksip_lib:get_value(headers, Options, nksip_headers:new([none])),
+    lists:keystore(headers, 1, Options, {headers, Headers ++ ExistingHeaders});
+
+apply_subscribe_option(Option, Options) ->
+    [Option | Options].
 
 
 %% ===================================================================
