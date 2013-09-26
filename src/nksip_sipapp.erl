@@ -124,6 +124,7 @@
 
 -export([init/1, get_user_pass/4, authorize/4, route/6, invite/4, reinvite/4, cancel/3, 
          ack/4, bye/4, options/3, register/3]).
+-export([supported/2]).
 -export([ping_update/3, register_update/3, dialog_update/3, session_update/3]).
 -export([handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 -include("nksip.hrl").
@@ -591,10 +592,11 @@ handle_info(_Msg, State) ->
     {noreply, State}.
 
 
+%% @doc Called before the SipApp begins processing a message to ensure
+%% that all features marked in the 'Requires' header is supported by
+%% the SipApp.
+-spec supported(From::from(), State::term()) ->
+    call_reply([binary()]).
 
-
-
-
-
-
-
+supported(_From, State) ->
+    {reply, [], State}.

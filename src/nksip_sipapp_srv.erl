@@ -29,7 +29,9 @@
 -behaviour(gen_server).
 
 -export([get_module/1, get_opts/1, reply/2]).
--export([sipapp_call_sync/3, sipapp_call_async/5, sipapp_cast/3, sipapp_cast/4]).
+-export([sipapp_call_sync/3, sipapp_call_sync/4]).
+-export([sipapp_call_async/5]).
+-export([sipapp_cast/3, sipapp_cast/4]).
 -export([register/2, get_registered/2, allowed/1]).
 -export([start_link/4, init/1, terminate/2, code_change/3, handle_call/3, handle_cast/2,
          handle_info/2]).
@@ -99,25 +101,30 @@ allowed(AppId) ->
 sipapp_call_sync(AppId, Fun, Args) ->
     case nksip_proc:values({nksip_sipapp_module, AppId}) of
         [{Module, CorePid}] ->
-            case erlang:function_exported(Module, Fun, length(Args)+2) of
-                true ->
-                    Msg = {'$nksip_call', Fun, Args},
-                    case catch gen_server:call(CorePid, Msg, ?CALLBACK_TIMEOUT) of
-                        {'EXIT', {shutdown, _}} ->
-                            {internal_error, <<"SipApp Shutdown">>};
-                        {'EXIT', Error} -> 
-                            ?error(AppId, "Error calling ~p: ~p", [Fun, Error]),
-                            {internal_error, <<"Error Calling SipApp">>};
-                        Other -> 
-                            Other
-                    end;
-                false -> 
-                    {reply, Reply, none} = 
-                        apply(nksip_sipapp, Fun, Args++[none, none]),
-                    Reply
-            end;
+            sipapp_call_sync(CorePid, Module, Fun, Args);
         _ ->
             {internal_error, <<"Unknown SipApp">>}
+    end.
+
+
+%% @private Calls to a function in a SipApp's callback module synchronously.
+-spec sipapp_call_sync(pid(), atom(), atom(), list()) -> any().
+sipapp_call_sync(CorePid, Module, Fun, Args) ->
+    case erlang:function_exported(Module, Fun, length(Args)+2) of
+        true ->
+            Msg = {'$nksip_call', Fun, Args},
+            case catch gen_server:call(CorePid, Msg, ?CALLBACK_TIMEOUT) of
+                {'EXIT', {shutdown, _}} ->
+                    {internal_error, <<"SipApp Shutdown">>};
+                {'EXIT', _Error} ->
+                    {internal_error, <<"Error Calling SipApp">>};
+                Other ->
+                    Other
+            end;
+        false ->
+            {reply, Reply, none} =
+                apply(nksip_sipapp, Fun, Args++[none, none]),
+            Reply
     end.
 
 
