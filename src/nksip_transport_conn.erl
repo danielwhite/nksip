@@ -155,7 +155,7 @@ get_listener(AppId, Proto, Ip, Port, Opts) when Proto=:=tcp; Proto=:=tls ->
 -spec get_outbound(nksip:sipapp_id(), nksip:protocol(),
                     inet:ip_address(), inet:port_number(), nksip_lib:proplist()) ->
     {ok, Port, Transport, Spec} | {error, term()}
-    when Port::port()|#sslsocket{}, Transport::nksip_transport:transport(), 
+    when Port::port()|ssl:sslsocket(), Transport::nksip_transport:transport(),
          Spec::term().
     
 get_outbound(AppId, Proto, Ip, Port, Opts) when Proto=:=tcp; Proto=:=tls ->
